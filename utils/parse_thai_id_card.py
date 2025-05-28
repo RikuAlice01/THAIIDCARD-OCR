@@ -1,7 +1,7 @@
 import re
 import json
 from rapidfuzz import process
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -341,19 +341,14 @@ def format_output(parsed_data: Dict[str, Any]) -> Dict[str, Any]:
 
 # Test with your sample data
 if __name__ == "__main__":
-    json_text = [
-        "{\"natural_text\": \"# บัตรประจำตัวประชาชน Thai National ID Card\\n\\n**เลขประจำตัวประชาชน:** 1 037 02071 81 1\\n\\n**ชื่อตัวและชื่อสกุล (Thai):** น.ส. ณัฐธีรา ยางสวาย\\n\\n**Name (English):** Miss Nattarika\\n\\n**Last Name (English):** Yangsuai\\n\\n**เกิดวันที่:** 25 มิ.ย. 2539\\n\\n**Date of Birth:** 25 Jun. 1996\\n\\n**สถานะ:** ผู้เสียภาษี\\n\\n**ที่อยู่:** 111/17 หมู่ที่ 2 ต.ลาดหญ้า อ.เมืองกาญจนบุรี จ.กาญจนบุรี 24 ก.ค. 2563\\n\\n**วันออกบัตร:** 24 มิ.ย. 2572\\n\\n**Date of Issue:** 24 Jun. 2019\\n\\n**วันหมดอายุ:** 24 มิ.ย. 2581\\n\\n**Date of Expiry:** 24 Jun. 2028\\n\\n**ที่อยู่ (English):** 111/17 หมู่ที่ 2 ต.ลาดหญ้า อ.เมืองกาญจนบุรี จ.กาญจนบุรี 24 ก.ค. 2563\\n\\n**ชื่อเจ้าหน้าที่ผู้ออกบัตร:** นายธนาคม จริงจิระ\"}",
-        "{\"text\": \"# บัตรประจำตัวประชาชน Thai National ID Card\\n\\n## เลขประจำตัวประชาชน\\n- 3 4001 00212 47 7\\n\\n## ชื่อตัวและชื่อสกุล\\n- พระมหา ไชยสยาม ปัญญาโคโน่ (เสรีมาศ)\\n\\n## Name\\n- Mr. Chaisayam\\n\\n## Last name\\n- Serimat\\n\\n## เกิดวันที่\\n- 16 พ.ย. 2515\\n\\n## Date of Birth\\n- 16 Nov. 1972\\n\\n## สถานะการสมัคร\\n- ผู้ชาย\\n\\n## ที่อยู่\\n- 1 หมู่ที่ 10 ต.หนองไม้แก่น อ.แปลงยาว จ.ฉะเชิงเทรา\\n\\n## วันออกบัตร\\n- 8 ก.ค. 2554\\n\\n## Date of Issue\\n- 08 Jul 2011\\n\\n## วันหมดอายุ\\n- 15 พ.ย. 2563\\n\\n## Expiry Date\\n- 15 Nov. 2020\\n\\n## รหัสประจำตัวประชาชน\\n- 150-150-140-140\\n\\n## ภาพประกอบ\\n![](attachment://path_to_image)\\n\\n## หมายเหตุ\\n- บัตรนี้มีวงกลมสีแดงที่หมายเลข 14 และ 15 ของเลขประจำตัวประชาชน\"}",
-        "{\"Text\": \"# บัตรประจำตัวประชาชน Thai National ID Card\\n\\n## เลขประจำตัวประชาชน\\n- 8 9031 15238 54 2 1\\n\\n## ชื่อตัวและชื่อสกุล\\n- ว่าที่ ร.ต. ณัฏฐาวีรกร ตาซื่อ ณ อยุธยา\\n\\n## Name\\n- Acting Sub.Lt Nutthaweerakorn\\n\\n## Last name\\n- Tasue\\n\\n## เกิดวันที่\\n- 16 พ.ค. 2516\\n\\n## Date of Birth\\n- 16 May 2013\\n\\n## สถานที่เกิด\\n- โรงพยาบาลเด็กสมิติเวช กรุงเทพมหานคร\\n\\n## รหัสประจำตัวประชาชน\\n- 110 170 160 160 150 150 140 140 130 130\\n\\n## วันออกบัตร\\n- 18 เม.ย. 2556\\n\\n## Issue Date\\n- 18 Apr 2013\\n\\n## วันหมดอายุ\\n- 18 เม.ย. 2565\\n\\n## Expiry Date\\n- 18 Apr 2022\\n\\n## ที่อยู่:\\n- 99/1 หมู่ 5 ถนนเลี่ยงเมืองปากเกร็ด ตำบลบางตลาด อำเภอปากเกร็ด นนทบุรี 11120\\n\\n## รหัสไปรษณีย์: 11120\\n\\n## วันที่ออกบัตร: 18 เมษายน 2556\\n\\n## วันที่หมดอายุ: 18 เมษายน 2565\"}"
-    ]
+    with open("id_card_samples.json", "r", encoding="utf-8") as f:
+        json_text = json.load(f)
 
-    # Test all samples
-    for i, json_str in enumerate(json_text):
+    for i, data in enumerate(json_text):
         print(f"\n=== Testing Sample {i+1} ===")
         try:
-            data = json.loads(json_str)
             text_key = next((k for k in ["Text", "text", "natural_text"] if k in data), None)
-            
+
             if text_key:
                 formatted = parse_thai_id_card(data[text_key])
                 print(json.dumps(formatted, ensure_ascii=False, indent=2))
