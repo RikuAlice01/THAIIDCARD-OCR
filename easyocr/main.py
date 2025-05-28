@@ -125,7 +125,7 @@ def extract_fields(texts):
     if alley_match:
         data["alley"] = alley_match.group(2)
 
-    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที\.)\s*(\d{1,2})", text)
+    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที\.)\s*(\d{1,5})", text)
     if village_match:
         data["village"] = village_match.group(2)
 
