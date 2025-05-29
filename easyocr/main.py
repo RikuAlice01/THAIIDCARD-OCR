@@ -79,8 +79,8 @@ def extract_fields(texts):
         data["citizen_id"] = cid_match.group().replace(" ", "")
 
     # 2. ชื่อ-นามสกุล ภาษาไทย + คำนำหน้า
-    match_special = re.search(r"สกุล\s+([ก-๙.]+)\s*\(\s*([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
-    match_normal = re.search(r"สกุล\s+((?:[ก-๙.]+\s*)+?)\s+([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
+    match_special = re.search(r"(สกุล|สกล)\s+([ก-๙.]+)\s*\(\s*([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
+    match_normal = re.search(r"(สกุล|สกล)\s+((?:[ก-๙.]+\s*)+?)\s+([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
 
     if match_special:
         data["prefix_th"] = match_special.group(1)
@@ -117,7 +117,7 @@ def extract_fields(texts):
         data["religion"] = religion_match.group(1).capitalize()
 
     # 6. ที่อยู่
-    address_match = re.search(r"(\d{1,4}/\d{1,4}.*?)\s+(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที|หมู่|ม\.|ต\.|อ\.|จ\.|ซ\.|ช\.)", data["clean_text"])
+    address_match = re.search(r"(\d{1,4}/\d{1,4}.*?)\s+(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หมที|หมู่|หม่ที|ม\.|ต\.|อ\.|จ\.|ซ\.|ช\.)", data["clean_text"])
     if address_match:
         data["address"] = address_match.group(1).strip()
 
@@ -125,7 +125,7 @@ def extract_fields(texts):
     if alley_match:
         data["alley"] = alley_match.group(2)
 
-    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที\.)\s*(\d{1,5})", data["clean_text"])
+    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หมที|หมู่|หม่ที|ม\.)\s*(\d{1,5})", data["clean_text"])
     if village_match:
         data["village"] = village_match.group(2)
 
