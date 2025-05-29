@@ -74,13 +74,13 @@ def extract_fields(texts):
     }
 
     # 1. เลขบัตรประชาชน
-    cid_match = re.search(r"\b\d\s?\d{4}\s?\d{5}\s?\d{2}\s?\d\b", text)
+    cid_match = re.search(r"\b\d\s?\d{4}\s?\d{5}\s?\d{2}\s?\d\b", data["clean_text"])
     if cid_match:
         data["citizen_id"] = cid_match.group().replace(" ", "")
 
     # 2. ชื่อ-นามสกุล ภาษาไทย + คำนำหน้า
-    match_special = re.search(r"ชื่อ\s*สกุล\s+([ก-๙.]+)\s*\(\s*([ก-๙]+)\s+([ก-๙]+)", text)
-    match_normal = re.search(r"ชื่อ\s*สกุล\s+((?:[ก-๙.]+\s*)+?)\s+([ก-๙]+)\s+([ก-๙]+)", text)
+    match_special = re.search(r"สกุล\s+([ก-๙.]+)\s*\(\s*([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
+    match_normal = re.search(r"สกุล\s+((?:[ก-๙.]+\s*)+?)\s+([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
 
     if match_special:
         data["prefix_th"] = match_special.group(1)
@@ -92,8 +92,8 @@ def extract_fields(texts):
         data["lastname_th"] = match_normal.group(3)
 
     # 3. ภาษาอังกฤษ
-    name_block_match = re.search(r"name\s+(.*?)\s+last\s+name", text)
-    lastname_en_match = re.search(r"last\s+name[\s:]+([a-z]+)", text)
+    name_block_match = re.search(r"name\s+(.*?)\s+last\s+name", data["clean_text"])
+    lastname_en_match = re.search(r"last\s+name[\s:]+([a-z]+)", data["clean_text"])
 
     if name_block_match:
         name_parts = name_block_match.group(1).replace(".", " ").split()
@@ -107,44 +107,44 @@ def extract_fields(texts):
         data["lastname_en"] = lastname_en_match.group(1).capitalize()
 
     # 4. วันเกิด
-    dob_match = re.search(r"([0-9]{1,2}\s*[ก-๙a-z.]+\s*[0-9]{4}).{0,20}(เกิดวันที่|date of birth|date ot birth)", text)
+    dob_match = re.search(r"([0-9]{1,2}\s*[ก-๙a-z.]+\s*[0-9]{4}).{0,20}(เกิดวันที่|date of birth|date ot birth)", data["clean_text"])
     if dob_match:
         data["dob"] = dob_match.group(1).strip()
 
     # 5. ศาสนา
-    religion_match = re.search(r"ศาสนา\s*([ก-๙a-z]+)", text)
+    religion_match = re.search(r"ศาสนา\s*([ก-๙a-z]+)", data["clean_text"])
     if religion_match:
         data["religion"] = religion_match.group(1).capitalize()
 
     # 6. ที่อยู่
-    address_match = re.search(r"(\d{1,4}/\d{1,4}.*?)\s+(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมทีหมู่|ม\.|ต\.|อ\.|จ\.|ซ\.|ช\.)", text)
+    address_match = re.search(r"(\d{1,4}/\d{1,4}.*?)\s+(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที|หมู่|ม\.|ต\.|อ\.|จ\.|ซ\.|ช\.)", data["clean_text"])
     if address_match:
         data["address"] = address_match.group(1).strip()
 
-    alley_match = re.search(r"(ซอย|ซ\.|ช\.)\s*([ก-๙]+)", text)
+    alley_match = re.search(r"(ซอย|ซ\.|ช\.)\s*([ก-๙]+)", data["clean_text"])
     if alley_match:
         data["alley"] = alley_match.group(2)
 
-    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที\.)\s*(\d{1,5})", text)
+    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หม่ที|หมที\.)\s*(\d{1,5})", data["clean_text"])
     if village_match:
         data["village"] = village_match.group(2)
 
     # 7. ตำบล / แขวง
-    subdistrict_match = re.search(r"(ตำบล| ต\.|แขวง)\s*([ก-๙]+)", text)
+    subdistrict_match = re.search(r"(ตำบล| ต\.|แขวง)\s*([ก-๙]+)", data["clean_text"])
     if subdistrict_match:
         data["subdistrict"] = subdistrict_match.group(2)
 
     # 8. อำเภอ / เขต
-    district_match = re.search(r"(อำเภอ| อ\.|เขต)\s*([ก-๙]+)", text)
+    district_match = re.search(r"(อำเภอ| อ\.|เขต)\s*([ก-๙]+)", data["clean_text"])
     if district_match:
         data["district"] = district_match.group(2)
 
     # 9. จังหวัด
-    province_match = re.search(r"(จังหวัด|จ\.)\s*([ก-๙]+)", text)
+    province_match = re.search(r"(จังหวัด|จ\.)\s*([ก-๙]+)", data["clean_text"])
     if province_match:
         data["province"] = province_match.group(2)
     else:
-        cleaned_text = re.sub(r"[^ก-๙a-zA-Z0-9\s]", "", text.lower())
+        cleaned_text = re.sub(r"[^ก-๙a-zA-Z0-9\s]", "", data["clean_text"].lower())
         provinces = [
             "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น",
             "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่",
@@ -165,7 +165,7 @@ def extract_fields(texts):
     # 10. วันออกบัตร / วันหมดอายุ
     card_dates_match = re.search(
         r"([0-9]{1,2}\s*[ก-๙a-z.]+\s*[0-9]{4}).{0,30}วันออกบัตร.{0,30}([0-9]{1,2}\s*[ก-๙a-z.]+\s*[0-9]{4})",
-        text
+        data["clean_text"]
     )
     if card_dates_match:
         data["issued_date"] = card_dates_match.group(1).strip()
