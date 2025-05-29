@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
-from rapidfuzz import process
+from rapidfuzz import process,fuzz
 import easyocr
 import numpy as np
 import cv2
@@ -51,6 +51,49 @@ def extract_fields(texts):
     text = text.replace('|', '1').replace('ฺ', '').replace(']', 'l')
     text = text.replace("aทธ", "พุทธ")
     text = re.sub(r"เก[็ด]วัน[ทีที่]", "เกิดวันที่", text)
+    text = re.sub(r"(หมู่ที|หมูที่|หม่ที่|หมูที|หมที|หม่ที)", "หมู่ที่", text)
+    text = re.sub(r"\bสกล\b", "สกุล", text)
+    text = re.sub(r"\bน\.ส\.\b", "นางสาว", text)
+    text = re.sub(r"\bว่าที\b", "ว่าที่", text)
+
+    # คำที่ถูกต้อง
+    target_keywords = [
+        "ชื่อตัวและชื่อสกุล",
+        "บัตรประจำตัวประชาชน",
+        "thai national id card",
+        "เลขประจำตัวประชาชน",
+        "identification number",
+        "เกิดวันที่",
+        "date of birth",
+        "ศาสนา",
+        "ที่อยู่",
+        "หมู่ที่",
+        "หมู่",
+        "วันออกบัตร",
+        "วันบัตรหมดอายุ",
+        "date of issue",
+        "date of expiry",
+        "เจ้าพนักงานออกบัตร"
+    ]
+
+    # สำหรับเก็บคำผิดที่พบและแทนที่
+    replacements = {}
+
+    # split ข้อความเป็นคำหรือคำกลุ่ม (ใช้ regex แยกคำรวมกับ whitespace/จุด)
+    tokens = re.findall(r"[^\s]+", text)
+
+    # ตรวจหาคำผิดจากทุก token ด้วย fuzzy matching
+    for token in tokens:
+        match = process.extractOne(token, target_keywords, scorer=fuzz.ratio, score_cutoff=60)
+        if match:
+            correct_word = match[0]
+            # เก็บคำผิดและคำถูกที่จับได้
+            if token != correct_word:
+                replacements[token] = correct_word
+
+    # แทนที่คำผิดด้วยคำที่ถูก
+    for wrong, right in replacements.items():
+        text = re.sub(rf"\b{re.escape(wrong)}\b", right, text)
 
     data = {
         "clean_text": text,
@@ -79,24 +122,33 @@ def extract_fields(texts):
         data["citizen_id"] = cid_match.group().replace(" ", "")
 
     # 2. ชื่อ-นามสกุล ภาษาไทย + คำนำหน้า
-    match_special = re.search(r"(สกุล|สกล)\s+([ก-๙.]+)\s*\(\s*([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
-    match_normal = re.search(r"(สกุล|สกล)\s+((?:[ก-๙.]+\s*)+?)\s+([ก-๙]+)\s+([ก-๙]+)", data["clean_text"])
+    # กรณีมีวงเล็บ เช่น พระมหา(ไชยสยาม ปัญญาคโม (เสรีมาศ))
+    match_special = re.search(
+        r"(นาย|นางสาว|น\.ส\.|พระมหา|ว่าที่ ร\.ต\.|ว่าที ร\.ต\.|ร\.ต\.|ด\.ร\.|นาง|น\.ส\.|เด็กชาย|เด็กหญิง|ว่าที่ ร.ต.|ว่าที ร.ต.|พระ|พลทหาร|สิบเอก|จ่าสิบเอก|พลฯ|พล.ท.|ดร\.?)\s*\(*([ก-๙]+)\s+([ก-๙().\s]+?)\)*\s+(?:name|last name)",
+        data["clean_text"]
+    )
+
+    # กรณีทั่วไป
+    match_normal = re.search(
+        r"(นาย|นางสาว|น\.ส\.|พระมหา|ว่าที่ ร\.ต\.|ว่าที ร\.ต\.|ร\.ต\.|ด\.ร\.|นาง|น\.ส\.|เด็กชาย|เด็กหญิง|ว่าที่ ร.ต.|ว่าที ร.ต.|พระ|พลทหาร|สิบเอก|จ่าสิบเอก|พลฯ|พล.ท.|ดร\.?)\s+([ก-๙]+)\s+([ก-๙().\s]+?)\s+(?:name|last name)",
+        data["clean_text"]
+    )
 
     if match_special:
-        data["prefix_th"] = match_special.group(1)
-        data["name_th"] = match_special.group(2)
-        data["lastname_th"] = match_special.group(3)
+        data["prefix_th"] = match_special.group(1).strip()
+        data["name_th"] = match_special.group(2).strip()
+        data["lastname_th"] = match_special.group(3).strip()
     elif match_normal:
         data["prefix_th"] = match_normal.group(1).strip()
-        data["name_th"] = match_normal.group(2)
-        data["lastname_th"] = match_normal.group(3)
+        data["name_th"] = match_normal.group(2).strip()
+        data["lastname_th"] = match_normal.group(3).strip()
 
-    # 3. ภาษาอังกฤษ
-    name_block_match = re.search(r"name\s+(.*?)\s+last\s+name", data["clean_text"])
-    lastname_en_match = re.search(r"last\s+name[\s:]+([a-z]+)", data["clean_text"])
+    # 3. ชื่อ-นามสกุล ภาษาอังกฤษ
+    name_block_match = re.search(r"name\s+([a-z. ]+?)\s+last\s+name", data["clean_text"], re.IGNORECASE)
+    lastname_en_match = re.search(r"last\s+name[\s:]+([a-z]+)", data["clean_text"], re.IGNORECASE)
 
     if name_block_match:
-        name_parts = name_block_match.group(1).replace(".", " ").split()
+        name_parts = name_block_match.group(1).split()
         if len(name_parts) >= 2:
             data["prefix_en"] = " ".join(name_parts[:-1]).capitalize()
             data["name_en"] = name_parts[-1].capitalize()
@@ -117,15 +169,19 @@ def extract_fields(texts):
         data["religion"] = religion_match.group(1).capitalize()
 
     # 6. ที่อยู่
-    address_match = re.search(r"(\d{1,4}/\d{1,4}.*?)\s+(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หมที|หมู่|หม่ที|ม\.|ต\.|อ\.|จ\.|ซ\.|ช\.)", data["clean_text"])
+    address_match = re.search(
+        r"(\d+/\d+|\d+)\s+(?=หมู่ที่|หมู่ที|หมู่|หม่ที|ม\.|ต\.|อ\.|จ\.|ซ\.|ช\.)",
+        data["clean_text"]
+    )
     if address_match:
         data["address"] = address_match.group(1).strip()
+
 
     alley_match = re.search(r"(ซอย|ซ\.|ช\.)\s*([ก-๙]+)", data["clean_text"])
     if alley_match:
         data["alley"] = alley_match.group(2)
 
-    village_match = re.search(r"(หมู่ที่|หมู่ที|หมูที่|หม่ที่|หมูที|หมที|หมู่|หม่ที|ม\.)\s*(\d{1,5})", data["clean_text"])
+    village_match = re.search(r"(หมู่ที่|หมู่|ม\.)\s*(\d{1,5})", data["clean_text"])
     if village_match:
         data["village"] = village_match.group(2)
 

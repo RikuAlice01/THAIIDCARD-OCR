@@ -5,3 +5,6 @@ opencv-python-headless
 numpy
 python-multipart
 rapidfuzz
+psutil
+uvloop 
+httptools
