@@ -48,13 +48,13 @@ pip install -r requirements.txt
 ### 🖥 CPU-only:
 
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --host "0.0.0.0" --port 8000 --workers 1 --http "httptools" --no-access-log --reload
 ```
 
 ### 🚀 With GPU support (multi-worker):
 
 ```bash
-uvicorn main:app --workers 4 --host 0.0.0.0 --port 8000
+uvicorn main:app --host "0.0.0.0" --port 8000 --workers 1 --http "httptools" --no-access-log --reload
 ```
 
 ---
